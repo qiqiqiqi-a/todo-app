@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding-top: 60px;
+  }
+  .app {
+    width: 100%;
+    max-width: 500px;
+    padding: 0 16px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 64px;
+    font-weight: 100;
+    color: #e8d5d5;
+    margin-bottom: 24px;
+    user-select: none;
+  }
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .input-row input {
+    flex: 1;
+    padding: 14px 16px;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    outline: none;
+    transition: box-shadow 0.2s;
+  }
+  .input-row input:focus {
+    box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+  }
+  .input-row select {
+    padding: 14px 10px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    outline: none;
+    cursor: pointer;
+    color: #666;
+    min-width: 62px;
+  }
+  .input-row button {
+    padding: 14px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #4f7cff;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+  .input-row button:hover { background: #3b64e0; }
+  .priority-badge {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .priority-badge:hover { transform: scale(1.4); }
+  .priority-badge.high { background: #e55; }
+  .priority-badge.medium { background: #f90; }
+  .priority-badge.low { background: #4f7cff; }
+  .priority-badge.none { background: #ddd; }
+  .list {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .list:empty { display: none; }
+  .todo-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+  }
+  .todo-item:hover { background: #fafbfc; }
+  .todo-item:last-child { border-bottom: none; }
+  .todo-item input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: #4f7cff;
+    flex-shrink: 0;
+  }
+  .todo-item .text {
+    flex: 1;
+    font-size: 17px;
+    transition: color 0.2s, text-decoration 0.2s;
+    word-break: break-word;
+  }
+  .todo-item.done .text {
+    color: #bbb;
+    text-decoration: line-through;
+  }
+  .todo-item .del {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: none;
+    color: #ccc;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 6px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+    visibility: hidden;
+  }
+  .todo-item:hover .del { visibility: visible; }
+  .todo-item .del:hover {
+    color: #e55;
+    background: #fef0f0;
+  }
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #fff;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    font-size: 14px;
+    color: #999;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .footer:empty { display: none; }
+  .filters {
+    display: flex;
+    gap: 4px;
+  }
+  .filters button {
+    border: 1px solid #e0e0e0;
+    background: #fff;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.15s;
+  }
+  .filters button:hover { border-color: #4f7cff; color: #4f7cff; }
+  .filters button.active {
+    background: #4f7cff;
+    color: #fff;
+    border-color: #4f7cff;
+  }
+  .footer .clear {
+    border: none;
+    background: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+  .footer .clear:hover { color: #e55; }
+  .footer .clear:disabled { color: #ddd; cursor: default; }
+  .empty-state {
+    text-align: center;
+    color: #ccc;
+    padding: 40px 0;
+    font-size: 16px;
+    user-select: none;
+  }
+  @media (max-width: 500px) {
+    body { padding-top: 30px; }
+    h1 { font-size: 48px; }
+    .input-row input { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>todos</h1>
+  <div class="input-row">
+    <input id="input" type="text" placeholder="有什么需要做的？" autofocus>
+    <select id="prioritySelect">
+      <option value="">无</option>
+      <option value="high">🔴 高</option>
+      <option value="medium">🟡 中</option>
+      <option value="low">🔵 低</option>
+    </select>
+    <button id="addBtn">添加</button>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="footer" id="footer">
+    <span id="counter">剩余 0 项</span>
+    <div class="filters">
+      <button class="active" data-filter="all">全部</button>
+      <button data-filter="active">进行中</button>
+      <button data-filter="done">已完成</button>
+    </div>
+    <button class="clear" id="clearDone">清除已完成</button>
+  </div>
+  <div class="empty-state" id="emptyState" style="display:none">还没有任何事情！</div>
+</div>
+
+<script>
+const input = document.getElementById('input');
+const prioritySelect = document.getElementById('prioritySelect');
+const addBtn = document.getElementById('addBtn');
+const list = document.getElementById('list');
+const footer = document.getElementById('footer');
+const counter = document.getElementById('counter');
+const clearDone = document.getElementById('clearDone');
+const emptyState = document.getElementById('emptyState');
+const filterBtns = footer.querySelectorAll('.filters button');
+
+const PRIORITY_ORDER = { high: 3, medium: 2, low: 1, '': 0 };
+const PRIORITY_CYCLE = ['', 'high', 'medium', 'low'];
+
+let todos = [];
+let filter = 'all';
+
+function load() {
+  try { todos = JSON.parse(localStorage.getItem('todos')) || []; } catch(e) { todos = []; }
+}
+
+function save() {
+  localStorage.setItem('todos', JSON.stringify(todos));
+}
+
+function getId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function addTodo(text) {
+  text = text.trim();
+  if (!text) return;
+  todos.unshift({ id: getId(), text, done: false, priority: prioritySelect.value });
+  save();
+  render();
+  input.value = '';
+  prioritySelect.value = '';
+}
+
+function cyclePriority(id) {
+  const t = todos.find(t => t.id === id);
+  if (!t) return;
+  const idx = PRIORITY_CYCLE.indexOf(t.priority || '');
+  t.priority = PRIORITY_CYCLE[(idx + 1) % PRIORITY_CYCLE.length];
+  save();
+  render();
+}
+
+function toggleTodo(id) {
+  const t = todos.find(t => t.id === id);
+  if (t) { t.done = !t.done; save(); render(); }
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(t => t.id !== id);
+  save();
+  render();
+}
+
+function clearCompleted() {
+  todos = todos.filter(t => !t.done);
+  save();
+  render();
+}
+
+function setFilter(f) {
+  filter = f;
+  filterBtns.forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  render();
+}
+
+function render() {
+  let filtered = todos.filter(t => {
+    if (filter === 'active') return !t.done;
+    if (filter === 'done') return t.done;
+    return true;
+  });
+
+  filtered.sort((a, b) => (PRIORITY_ORDER[b.priority || ''] || 0) - (PRIORITY_ORDER[a.priority || ''] || 0));
+
+  list.innerHTML = '';
+  if (filtered.length === 0) {
+    emptyState.style.display = 'block';
+  } else {
+    emptyState.style.display = 'none';
+    filtered.forEach(t => {
+      const prio = t.priority || '';
+      const el = document.createElement('div');
+      el.className = 'todo-item' + (t.done ? ' done' : '');
+      el.innerHTML = `
+        <input type="checkbox" ${t.done ? 'checked' : ''}>
+        <span class="priority-badge ${prio || 'none'}" title="${prio ? '优先级: ' + ({high:'高',medium:'中',low:'低'}[prio]) : '点击设置优先级'}"></span>
+        <span class="text">${escapeHtml(t.text)}</span>
+        <button class="del">×</button>
+      `;
+      el.querySelector('input[type=checkbox]').onchange = () => toggleTodo(t.id);
+      el.querySelector('.priority-badge').onclick = () => cyclePriority(t.id);
+      el.querySelector('.del').onclick = () => deleteTodo(t.id);
+      list.appendChild(el);
+    });
+  }
+
+  const activeCount = todos.filter(t => !t.done).length;
+  counter.textContent = '剩余 ' + activeCount + ' 项';
+  clearDone.disabled = todos.every(t => !t.done);
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+addBtn.onclick = () => addTodo(input.value);
+input.onkeydown = e => { if (e.key === 'Enter') addTodo(input.value); };
+clearDone.onclick = clearCompleted;
+filterBtns.forEach(b => b.onclick = () => setFilter(b.dataset.filter));
+
+load();
+render();
+</script>
+
+</body>
+</html>
